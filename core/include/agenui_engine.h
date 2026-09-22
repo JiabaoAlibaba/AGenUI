@@ -76,7 +76,11 @@ public:
     /**
      * @brief Declares a component property as a container of dynamic values
      * @param componentType Component type name, i.e. the JSON "component" field
-     *        (e.g. "AmapText") — applies to every instance of that type
+     *        (e.g. "MyText") — applies to every instance of that type.
+     *        Pass "*" to match every component type with one declaration.
+     *        Note: engine-reserved keys ("action", "checks", "styles",
+     *        "accessibility", "tabs") keep their dedicated parsing regardless
+     *        of registration.
      * @param propertyName Property name (e.g. "spans")
      * @return true on success; false when either name is empty or the engine is not ready
      * @note By default a property value is parsed but not descended into, so a nested

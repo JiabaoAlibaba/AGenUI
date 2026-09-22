@@ -1,136 +1,78 @@
 #pragma once
 
-#include <string>
 #include <map>
+#include <mutex>
+#include <string>
 #include <nlohmann/json.hpp>
+
+#include "a2ui_component_descriptors.h"
 
 namespace a2ui {
 
 class A2UIComponent;
-class ComponentFactory;
 
 /**
- * Component registry aligned with the cross-platform ComponentRegistry.
+ * Global component registry — the single source of truth for which component
+ * types can be rendered, aligned with the cross-platform ComponentRegistry.
  *
- * Responsibilities:
- * 1. Manage component factories (type -> factory)
- * 2. Manage component instances (id -> component)
- * 3. Manage parent relationships (childId -> parentId)
+ * Entries come from two registration paths and live in one table:
+ * 1. Built-in components, seeded once from the static descriptor table
+ *    (a2ui_component_descriptors.h) on first access.
+ * 2. Host custom components, appended at runtime through the NAPI
+ *    registerComponent/unregisterComponent exports. These are always hybrid:
+ *    creation is delegated to the ArkTS side via A2UIHybridFactory.
  *
- * Each surface owns an independent registry copied from the global factory set.
+ * Component factories are stateless and all Surfaces share this registry.
+ * Component instances are owned by their Surface, not by this registry.
  */
 class ComponentRegistry {
 public:
-    ComponentRegistry();
-    ~ComponentRegistry();
-
-    // Factory management
-
     /**
-     * Register a component factory.
-     * @param type Component type name such as "Text" or "Column"
-     * @param factory Factory instance. Ownership is transferred if
-     *        setOwnsFactories(true) has been called; otherwise borrowed.
+     * Process-wide registry. Seeds the built-in components on first access.
      */
-    void registerFactory(const std::string& type, ComponentFactory* factory);
+    static ComponentRegistry& global();
 
     /**
-     * When true, the registry deletes all factories in its destructor.
-     * Only the global (source) registry should own factories; per-surface
-     * copies obtained via copyFactoriesFrom() must NOT own them.
+     * Register (or replace) a component type.
+     * @param type Component type name such as "Text" or "AmapText"
+     * @param descriptor Entry describing how to create/measure the type
      */
-    void setOwnsFactories(bool owns) { ownsFactories_ = owns; }
+    void registerComponent(const std::string& type, const ComponentDescriptor& descriptor);
 
     /**
-     * Return the factory for a given type, or nullptr.
+     * Remove a previously registered component type.
      */
-    ComponentFactory* getFactory(const std::string& type) const;
+    void unregisterComponent(const std::string& type);
 
     /**
-     * Return whether a factory has been registered for the given type.
-     */
-    bool hasFactory(const std::string& type) const;
-
-    /**
-     * Create a component through its registered factory.
+     * Create a component through its registered entry.
      *
      * @param surfaceId Surface ID used to identify the owning surface
      * @param type Component type
      * @param id Component ID
      * @param properties Component properties
-     * @return Newly created component instance, or nullptr if the factory is missing
+     * @return Newly created component instance (caller owns the lifetime),
+     *         or nullptr when the type is unknown or creation fails
      */
     A2UIComponent* createComponent(const std::string& surfaceId,
-                                    const std::string& type,
-                                    const std::string& id,
-                                    const nlohmann::json& properties);
-
-    // Component instance management
+                                   const std::string& type,
+                                   const std::string& id,
+                                   const nlohmann::json& properties);
 
     /**
-     * Register a component instance.
-     */
-    void registerComponent(const std::string& id, A2UIComponent* component);
-
-    /**
-     * Return the component instance for an ID, or nullptr.
-     */
-    A2UIComponent* getComponent(const std::string& id) const;
-
-    /**
-     * Unregister a component instance.
-     */
-    void unregisterComponent(const std::string& id);
-
-    /**
-     * Return whether a component instance exists.
-     */
-    bool hasComponent(const std::string& id) const;
-
-    /**
-     * Clear all component instances without removing factories.
-     */
-    void clearAllComponents();
-
-    // Parent map management
-
-    /**
-     * Record a parent-child relationship.
-     */
-    void setParentId(const std::string& childId, const std::string& parentId);
-
-    /**
-     * Return the parent component ID, or an empty string if missing.
-     */
-    std::string getParentId(const std::string& childId) const;
-
-    // Factory map copying
-
-    /**
-     * Copy all factory mappings from another registry.
-     */
-    void copyFactoriesFrom(const ComponentRegistry& source);
-
-    /**
-     * Return the number of registered factories.
-     */
-    int getRegisteredFactoryCount() const;
-
-    /**
-     * Return the number of registered component instances.
+     * Return the number of registered component types.
      */
     int getRegisteredComponentCount() const;
 
 private:
-    // type -> factory. Owned iff ownsFactories_ is true.
-    std::map<std::string, ComponentFactory*> factories_;
-    bool ownsFactories_ = false;
+    ComponentRegistry() = default;
 
-    // id -> component. Component lifetime is owned by Surface.
-    std::map<std::string, A2UIComponent*> components_;
+    // Seed built-in components from the static descriptor table.
+    void registerBuiltInComponents();
 
-    // childId -> parentId
-    std::map<std::string, std::string> parentMap_;
+    // type -> descriptor. Written by both registration paths; read on creation.
+    std::map<std::string, ComponentDescriptor> components_;
+    mutable std::mutex mutex_;
 };
 
 } // namespace a2ui

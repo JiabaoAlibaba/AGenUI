@@ -86,7 +86,7 @@ napi_value buildEdgeInsetSide(napi_env env, const agenui::EdgeInsetValue& side) 
  * same parser through jni_edge_insets_parser.cpp and iOS links it directly, so this
  * is what keeps the CSS edge-insets grammar identical on all three platforms.
  *
- * Needed by the amap host's AmapText (SpanText) component for `padding` / `margin`
+ * Needed by host hybrid rich-text (SpanText) components for `padding` / `margin`
  * shorthand; without it the ArkTS layer would have to reimplement the grammar and
  * would inevitably drift from the other platforms.
  *

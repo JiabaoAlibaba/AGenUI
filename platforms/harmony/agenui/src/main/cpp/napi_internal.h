@@ -94,6 +94,7 @@ napi_value RegisterEtsFunction(napi_env env, napi_callback_info info);
 napi_value RegisterFunction(napi_env env, napi_callback_info info);
 napi_value UnregisterFunction(napi_env env, napi_callback_info info);
 napi_value RegisterComponent(napi_env env, napi_callback_info info);
+napi_value UnregisterComponent(napi_env env, napi_callback_info info);
 
 // napi_text_stream.cpp
 napi_value BeginTextStream(napi_env env, napi_callback_info info);

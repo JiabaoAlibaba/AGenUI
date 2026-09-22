@@ -31,7 +31,6 @@ namespace ComponentType {
 
     // Extended components
     inline const std::string kRichText      = "RichText";
-    inline const std::string kLottie        = "Lottie";
     inline const std::string kWeb           = "Web";
     inline const std::string kTable         = "Table";
     inline const std::string kCarousel      = "Carousel";

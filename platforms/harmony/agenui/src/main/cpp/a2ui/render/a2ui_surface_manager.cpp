@@ -17,7 +17,7 @@ A2UISurfaceManager::A2UISurfaceManager(ComponentRegistry* globalRegistry, int in
     componentRenderObservable_.addComponentRenderListener(this);
     surfaceLayoutObservable_.addSurfaceLayoutListener(this);
 
-    HM_LOGI("Created with %d factories", globalRegistry_->getRegisteredFactoryCount());
+    HM_LOGI("Created with %d components", globalRegistry_->getRegisteredComponentCount());
 }
 
 A2UISurfaceManager::~A2UISurfaceManager() {
@@ -73,22 +73,18 @@ A2UISurface* A2UISurfaceManager::createSurface(const std::string& surfaceId, boo
         return nullptr;
     }
 
-    // 1. Create a per-surface ComponentRegistry.
-    auto registryOwner = std::make_unique<ComponentRegistry>();
-    registryOwner->copyFactoriesFrom(*globalRegistry_);
-
-    // 2. Create the surface with immutable animation and observer state.
-    auto surfaceOwner = std::make_unique<A2UISurface>(surfaceId, registryOwner.get(), animated,
+    // Create the surface with immutable animation and observer state.
+    // All surfaces share the global component registry.
+    auto surfaceOwner = std::make_unique<A2UISurface>(surfaceId, globalRegistry_, animated,
                                                       instanceId_,
                                                       blankCheckExecutor_, errorReporter_,
                                                       &componentRenderObservable_, &surfaceLayoutObservable_,
                                                       contentSizeChangedCallback_,
                                                       rootComponentUpdateCallback_);
 
-    // 3. Store the surface and registry (transfer ownership to the maps).
+    // Store the surface (transfer ownership to the map).
     A2UISurface* surface = surfaceOwner.release();
     surfaces_[surfaceId] = surface;
-    registries_[surfaceId] = registryOwner.release();
 
     HM_LOGI("Surface created: %s (total: %d)", surfaceId.c_str(), getSurfaceCount());
     return surface;
@@ -119,14 +115,8 @@ void A2UISurfaceManager::destroySurface(const std::string& surfaceId) {
     // 2. Remove it from the surface map.
     surfaces_.erase(surfaceIt);
 
-    // 3. Delete the surface and its dedicated registry.
+    // 3. Delete the surface. The registry is shared and not deleted here.
     delete surface;
-
-    auto registryIt = registries_.find(surfaceId);
-    if (registryIt != registries_.end()) {
-        delete registryIt->second;
-        registries_.erase(registryIt);
-    }
 
     // 4. Remove stale content handle entry.
     surfaceContentHandles_.erase(surfaceId);
@@ -143,12 +133,6 @@ void A2UISurfaceManager::clearAll() {
         delete it->second;
     }
     surfaces_.clear();
-
-    // Then delete all dedicated registries.
-    for (auto it = registries_.begin(); it != registries_.end(); ++it) {
-        delete it->second;
-    }
-    registries_.clear();
 
     surfaceContentHandles_.clear();
 

@@ -79,8 +79,11 @@ export const setDebug: (isDebug: boolean) => void;
 /** Gets whether the host app is a debug build. Returns false if never set. */
 export const isDebug: () => boolean;
 
-/** Registers a custom component factory. */
-export const registerComponent: (type: string, creator: (nodeId: string, props: object) => object) => void;
+/** Registers a host component type into the native global component registry (always hybrid). */
+export const registerComponent: (type: string) => void;
+
+/** Removes a host component type from the native global component registry. */
+export const unregisterComponent: (type: string) => void;
 
 /** Returns the AGenUI SDK version. */
 export const getVersion: () => string;

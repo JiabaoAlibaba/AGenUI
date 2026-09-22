@@ -318,15 +318,15 @@ public class AGenUI {
      * dynamic values at any depth — including bindings inside a function call's
      * arguments, and relative paths inside a List item template.
      * <p>
-     * Example — {@code AmapText} carries its rich-text runs in a {@code spans} array,
+     * Example — {@code MyText} carries its rich-text runs in a {@code spans} array,
      * where each run has its own bound text and token-resolved colors:
      * <pre>{@code
-     * AGenUI.getInstance().registerComponent("AmapText", new AmapA2UITextComponentFactory());
-     * AGenUI.getInstance().registerDeepParseProperty("AmapText", "spans");
+     * AGenUI.getInstance().registerComponent("MyText", new MyTextComponentFactory());
+     * AGenUI.getInstance().registerDeepParseProperty("MyText", "spans");
      * }</pre>
      *
      * @param componentType Component type, i.e. the JSON {@code component} field
-     *                      (e.g. "AmapText") — applies to every instance of that type
+     *                      (e.g. "MyText") — applies to every instance of that type
      * @param propertyName  Property name (e.g. "spans")
      * @return true on success, false when either name is empty
      * @implNote Must be called before the first render. A declaration made afterwards

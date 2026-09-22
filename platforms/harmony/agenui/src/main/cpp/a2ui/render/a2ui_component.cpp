@@ -72,7 +72,9 @@ A2UIComponent::~A2UIComponent() {
 
 void A2UIComponent::setHeight(float height) {
     m_height = height;
-    getNode().setHeight(height);
+    if (m_nodeHandle) {
+        getNode().setHeight(height);
+    }
 }
 
 const nlohmann::json& A2UIComponent::getProperties() const {
@@ -172,27 +174,29 @@ void A2UIComponent::updateLayoutProperties(const nlohmann::json& newProps) {
             m_y = posY;
             m_width = width;
             m_height = height;
-            
-            if (!m_parent || m_parent->shouldApplyChildLayoutPosition(this)) {
-                getNode().setPosition(m_x, m_y);
-            } else {
-                // Parent opted out of full position, but may still apply partial position
-                // (e.g. ListComponent applies only the x axis for cross-axis alignment).
-                m_parent->onApplyChildPosition(this, m_x, m_y);
-            }
-            if (!m_parent || m_parent->shouldApplyChildLayoutSize(this)) {
-                getNode().setWidth(m_width);
-                getNode().setHeight(m_height);
-            }
-            // Root node has no Yoga parent to consume its margin.
-            // Yoga's getLayoutLeft/Top already include margin-left/top in the
-            // position, but margin-bottom/right are lost. Apply them to the
-            // ArkUI node so the parent Stack can allocate the correct space.
-            if (m_id == "root") {
-                float mt = 0, mr = 0, mb = 0, ml = 0;
-                resolveUserMargin(stylesJson, mt, mr, mb, ml);
-                if (mb > 0 || mr > 0) {
-                    getNode().setMargin(0, mr, mb, 0);
+
+            if (m_nodeHandle) {
+                if (!m_parent || m_parent->shouldApplyChildLayoutPosition(this)) {
+                    getNode().setPosition(m_x, m_y);
+                } else {
+                    // Parent opted out of full position, but may still apply partial position
+                    // (e.g. ListComponent applies only the x axis for cross-axis alignment).
+                    m_parent->onApplyChildPosition(this, m_x, m_y);
+                }
+                if (!m_parent || m_parent->shouldApplyChildLayoutSize(this)) {
+                    getNode().setWidth(m_width);
+                    getNode().setHeight(m_height);
+                }
+                // Root node has no Yoga parent to consume its margin.
+                // Yoga's getLayoutLeft/Top already include margin-left/top in the
+                // position, but margin-bottom/right are lost. Apply them to the
+                // ArkUI node so the parent Stack can allocate the correct space.
+                if (m_id == "root") {
+                    float mt = 0, mr = 0, mb = 0, ml = 0;
+                    resolveUserMargin(stylesJson, mt, mr, mb, ml);
+                    if (mb > 0 || mr > 0) {
+                        getNode().setMargin(0, mr, mb, 0);
+                    }
                 }
             }
             if (m_parent) {
@@ -310,7 +314,9 @@ void A2UIComponent::destroy() {
             ImageLoaderBridge::getInstance().cancel(m_backgroundImageRequestId);
             m_backgroundImageRequestId.clear();
         }
-        g_nodeAPI->removeChild(m_nodeHandle, m_backgroundImageHandle);
+        if (m_nodeHandle) {
+            g_nodeAPI->removeChild(m_nodeHandle, m_backgroundImageHandle);
+        }
         g_nodeAPI->disposeNode(m_backgroundImageHandle);
         m_backgroundImageHandle = nullptr;
         m_backgroundImageUrl.clear();

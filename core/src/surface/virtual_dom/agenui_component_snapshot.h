@@ -35,6 +35,9 @@ struct LayoutInfo {
 /**
  * @brief Component data binding status enum
  * @remark Indicates the binding state between the component and its data sources
+ * @note Declaration order is a wire contract: values are serialized as-is into
+ *       the "dataBindingStatus" meta field of stringify() output. Do not
+ *       reorder; append new values only.
  */
 enum class DataBindingStatus {
     /** @brief No data dependency; the component requires no data binding */

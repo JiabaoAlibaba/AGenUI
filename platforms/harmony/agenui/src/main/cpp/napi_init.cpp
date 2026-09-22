@@ -6,16 +6,7 @@
 #include "a2ui/render/a2ui_component.h"
 #include "a2ui/measure/a2ui_platform_layout_bridge.h"
 #include "agenui_measurement.h"
-#include "a2ui/measure/image_component_measurement.h"
-#include "a2ui/measure/slider_component_measurement.h"
-#include "a2ui/measure/text_component_measurement.h"
-#include "a2ui/measure/checkbox_component_measurement.h"
-#include "a2ui/measure/choice_picker_component_measurement.h"
-#include "a2ui/measure/table_component_measurement.h"
-#include "a2ui/measure/tabs_component_measurement.h"
-#include "a2ui/measure/datetimeinput_component_measurement.h"
-#include "a2ui/measure/divider_component_measurement.h"
-#include "a2ui/measure/audioplayer_component_measurement.h"
+#include "a2ui/render/factory/a2ui_component_descriptors.h"
 #include "a2ui_api.h"
 #include "agenui_logger_interface.h"
 #include "agenui_logger_internal.h"
@@ -279,22 +270,16 @@ static napi_value Start(napi_env env, napi_callback_info info) {
 
     auto* mm = engine->getMeasurementManager();
     if (mm) {
-        mm->registerMeasurement("Image",        std::make_shared<a2ui::ImageComponentMeasurement>());
-        mm->registerMeasurement("Icon",         std::make_shared<a2ui::ImageComponentMeasurement>());
-        mm->registerMeasurement("Slider",       std::make_shared<a2ui::SliderComponentMeasurement>());
-        mm->registerMeasurement("Text",         std::make_shared<a2ui::TextComponentMeasurement>());
-        // NOTE: no native measurement for "AmapText". The amap host registers an
-        // ArkTS measurement handler (SpanText-aware, measurement/render same source)
-        // for this type; registering TextComponentMeasurement here would only serve
-        // as a misleading fallback that does not understand `spans`.
-        mm->registerMeasurement("RichText",     std::make_shared<a2ui::TextComponentMeasurement>());
-        mm->registerMeasurement("CheckBox",     std::make_shared<a2ui::CheckBoxComponentMeasurement>());
-        mm->registerMeasurement("ChoicePicker", std::make_shared<a2ui::ChoicePickerComponentMeasurement>());
-        mm->registerMeasurement("Table",        std::make_shared<a2ui::TableComponentMeasurement>());
-        mm->registerMeasurement("Tabs",          std::make_shared<a2ui::TabsComponentMeasurement>());
-        mm->registerMeasurement("DateTimeInput", std::make_shared<a2ui::DateTimeInputComponentMeasurement>());
-        mm->registerMeasurement("Divider",       std::make_shared<a2ui::DividerComponentMeasurement>());
-        mm->registerMeasurement("AudioPlayer",   std::make_shared<a2ui::AudioPlayerComponentMeasurement>());
+        // Register built-in measurements from the component descriptor table.
+        // NOTE: "AmapText" intentionally has no native measurement: the amap host
+        // registers an ArkTS measurement handler (SpanText-aware, measurement/render
+        // same source) for this hybrid type; a native TextComponentMeasurement
+        // fallback would not understand `spans`.
+        for (const auto& descriptor : a2ui::getComponentDescriptors()) {
+            if (descriptor.measurement) {
+                mm->registerMeasurement(descriptor.type, descriptor.measurement());
+            }
+        }
     }
 
     HM_LOGI("AGenUI Engine initialized successfully");
@@ -662,6 +647,7 @@ static napi_value Init(napi_env env, napi_value exports)
         { "endTextStream", nullptr, EndTextStream, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "invalidateFunctionCallValues", nullptr, InvalidateFunctionCallValues, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "registerComponent", nullptr, RegisterComponent, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "unregisterComponent", nullptr, UnregisterComponent, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "registerImageLoader", nullptr, RegisterImageLoader, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "setImagePixelMap", nullptr, SetImagePixelMap, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "setImagePixelMapNative", nullptr, SetImagePixelMapNative, nullptr, nullptr, nullptr, napi_default, nullptr },

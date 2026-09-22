@@ -4,7 +4,7 @@
 #include "agenui_logger_internal.h"
 #include "render/a2ui_component.h"
 #include "render/a2ui_surface.h"
-#include "render/factory/a2ui_default_registry.h"
+#include "render/factory/a2ui_component_registry.h"
 #include <nlohmann/json.hpp>
 #include "utils/a2ui_log_utils.h"
 #include <cstdlib>
@@ -28,7 +28,7 @@ std::mutex A2UIMessageListener::s_instanceMapMutex_;
 A2UIMessageListener::A2UIMessageListener(int instanceId)
     : instanceId_(instanceId), surfaceManager_(nullptr), tsfn_(nullptr) {
     surfaceManager_ = std::make_unique<a2ui::A2UISurfaceManager>(
-        &a2ui::getDefaultFactoryRegistry(), instanceId_);
+        &a2ui::ComponentRegistry::global(), instanceId_);
 
     // Register instance for exposure dispatch lookup
     {

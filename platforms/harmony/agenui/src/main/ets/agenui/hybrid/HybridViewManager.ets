@@ -3,6 +3,7 @@
  */
 
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import internal_a2ui from 'liba2ui-capi.so';
 import { UpdateState } from './ViewState';
 import { HybridInvokeCallback, HybridBaseView, HybridViewCreator, HYBRID_VIEW_TAG } from './HybridBaseView';
 import { HybridWebView } from './HybridWebView';
@@ -50,10 +51,19 @@ export class HybridViewManager {
    */
   public registerViewCreator(viewTag: string, viewCreator: HybridViewCreator) {
     this.viewCreatorRegistry.set(viewTag, viewCreator);
+    // Sync the type into the native global component registry so the C++
+    // render layer can create this hybrid type. The typeof guard keeps
+    // compatibility with older .so builds without this export.
+    if (typeof internal_a2ui.registerComponent === 'function') {
+      internal_a2ui.registerComponent(viewTag);
+    }
   }
 
   public unregisterViewCreator(viewTag: string) {
     this.viewCreatorRegistry.delete(viewTag);
+    if (typeof internal_a2ui.unregisterComponent === 'function') {
+      internal_a2ui.unregisterComponent(viewTag);
+    }
   }
 
   public hasViewCreator(viewTag: string): boolean {

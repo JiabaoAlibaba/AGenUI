@@ -100,7 +100,10 @@ public enum MeasureMode: Int {
     // MARK: - Callbacks
     
     /// Called after updateProperties completes
-    /// - Parameters: the raw diff values that were applied (.deleted → NSNull)
+    /// - Parameters: the full current `properties` snapshot (post-apply),
+    ///   aligned with the Android / HarmonyOS full-properties payload —
+    ///   NOT the applied diff. Detect per-key changes by diffing against
+    ///   your own last-seen copy.
     public var onPropertiesUpdate: (([String: Any]) -> Void)?
 
     /// Called whenever this component's frame is actually changed (post-write).
@@ -429,8 +432,10 @@ public enum MeasureMode: Int {
         // Apply accessibility attributes from DSL
         applyAccessibility(diff: diff)
 
-        // Notify properties update callback (convert back to raw [String: Any])
-        onPropertiesUpdate?(diff.toRaw())
+        // Notify properties update callback with the full properties snapshot
+        // (post-apply, deletions already removed) — full-payload semantics,
+        // aligned with Android / HarmonyOS root component update.
+        onPropertiesUpdate?(self.properties)
 
         state!.clearDirty()
     }

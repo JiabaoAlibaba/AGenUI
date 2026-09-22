@@ -2,6 +2,7 @@
 #include "a2ui/bridge/open_url_helper.h"
 #include "a2ui/bridge/skill_invoker_helper.h"
 #include "a2ui/bridge/harmony_platform_function.h"
+#include "a2ui/render/factory/a2ui_component_registry.h"
 
 napi_value RegisterOpenUrlCallback(napi_env env, napi_callback_info info) {
     size_t argc = 1;
@@ -148,23 +149,46 @@ napi_value UnregisterFunction(napi_env env, napi_callback_info info) {
 }
 
 napi_value RegisterComponent(napi_env env, napi_callback_info info) {
-    size_t argc = 2;
-    napi_value args[2];
+    size_t argc = 1;
+    napi_value args[1];
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
 
-    if (argc < 2) {
-        HM_LOGE("RegisterComponent: Expected 2 arguments, got %zu", argc);
+    if (argc < 1) {
+        HM_LOGE("RegisterComponent: Expected 1 argument, got %zu", argc);
         NAPI_RETURN_UNDEFINED(env);
     }
 
     std::string type = napiGetString(env, args[0]);
-
-    if (!napiCheckArgIsFunction(env, args[1], "RegisterComponent (second arg)")) {
+    if (type.empty()) {
+        HM_LOGE("RegisterComponent: component type is empty");
         NAPI_RETURN_UNDEFINED(env);
     }
 
-    HM_LOGI("RegisterComponent: type=%s", type.c_str());
-    HM_LOGI("RegisterComponent: success (stub implementation)");
+    // Host components are always hybrid: creation is delegated to the ArkTS
+    // side through the HybridView channel (view creators are registered
+    // separately via HybridViewManager).
+    a2ui::ComponentDescriptor descriptor;
+    descriptor.type = type;
+    descriptor.isHybrid = true;
+    a2ui::ComponentRegistry::global().registerComponent(type, descriptor);
 
+    HM_LOGI("RegisterComponent: type=%s registered as hybrid", type.c_str());
+    NAPI_RETURN_UNDEFINED(env);
+}
+
+napi_value UnregisterComponent(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+
+    if (argc < 1) {
+        HM_LOGE("UnregisterComponent: Expected 1 argument, got %zu", argc);
+        NAPI_RETURN_UNDEFINED(env);
+    }
+
+    std::string type = napiGetString(env, args[0]);
+    a2ui::ComponentRegistry::global().unregisterComponent(type);
+
+    HM_LOGI("UnregisterComponent: type=%s", type.c_str());
     NAPI_RETURN_UNDEFINED(env);
 }

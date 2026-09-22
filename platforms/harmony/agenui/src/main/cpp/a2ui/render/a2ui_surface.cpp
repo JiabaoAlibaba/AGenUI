@@ -67,12 +67,6 @@ A2UISurface::State A2UISurface::getState() const {
     return state_;
 }
 
-ComponentRegistry& A2UISurface::getComponentRegistry() {
-    return *registry_;
-}
-
-
-
 void A2UISurface::handleComponentAdd(const agenui::ComponentsAddMessage& msg) {
     // Parse the component JSON before validating parentId.
     nlohmann::json componentJson;
@@ -229,12 +223,11 @@ void A2UISurface::handleComponentsRemove(const std::vector<agenui::ComponentsRem
         HM_LOGI("handleComponentsRemove: removing %s with %zu subtree node(s)",
                 componentId.c_str(), subtreeIds.size());
 
-        // 3. Erase every id from the tree and registry FIRST so that if any
+        // 3. Erase every id from the tree FIRST so that if any
         //    observer triggered during destroy() queries the tree it cannot
         //    obtain stale pointers to components that are being torn down.
         for (const std::string& id : subtreeIds) {
             componentTree_.erase(id);
-            registry_->unregisterComponent(id);
         }
 
         // 4. Destroy all native resources (ArkUI nodes, media players, image
@@ -455,12 +448,6 @@ void A2UISurface::addComponent(const std::string& parentId, A2UIComponent* compo
             HM_LOGW("Parent not found in tree: %s (child: %s)", parentId.c_str(), component->getId().c_str());
         }
     }
-
-    // 5. Register the component in the registry.
-    registry_->registerComponent(component->getId(), component);
-    if (!parentId.empty()) {
-        registry_->setParentId(component->getId(), parentId);
-    }
 }
 
 int A2UISurface::getComponentCount() const {
@@ -654,7 +641,6 @@ void A2UISurface::destroy() {
 
     // Clear the maps without dereferencing stale pointers.
     componentTree_.clear();
-    registry_->clearAllComponents();
     state_ = State::DESTROYED;
 
     HM_LOGI("Surface destroyed: %s", surfaceId_.c_str());
