@@ -455,6 +455,11 @@ bool VirtualDOMNode::checkSnapshotChanged(const ComponentSnapshot& desc1, const 
         || desc1.attributes != desc2.attributes
         || desc1.children != desc2.children
         || desc1.styles != desc2.styles
+        // A readiness flip with unchanged values (e.g. a binding resolving to
+        // the same text it produced while NotReady) must still replace the
+        // snapshot and emit an UPDATE diff, or platforms would never learn
+        // that dataBindingStatus changed.
+        || desc1.dataBindingStatus != desc2.dataBindingStatus
         || (compareLayout && desc1.layout != desc2.layout);
     
     if (diff != nullptr && changed) {

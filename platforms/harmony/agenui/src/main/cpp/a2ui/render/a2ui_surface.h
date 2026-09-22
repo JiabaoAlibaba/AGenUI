@@ -31,7 +31,7 @@ class A2UIComponent;
  * 3. Manage surface lifecycle state
  * 4. Mount and unmount native UI nodes through contentHandle
  *
- * Each surface owns an independent ComponentRegistry copied from the global factories.
+ * All surfaces share the single global ComponentRegistry (ComponentRegistry::global()).
  */
 class A2UISurface {
 public:
@@ -80,7 +80,7 @@ public:
     /**
      * Constructor
      * @param surfaceId Surface ID
-     * @param registry Surface-specific ComponentRegistry copied from the global factories
+     * @param registry Shared global ComponentRegistry (not owned by the surface)
      * @param animated Whether components on this surface may play animations (from CreateSurfaceMessage)
      * @param componentRenderObservable Component render observer owned by SurfaceManager
      * @param surfaceLayoutObservable Surface layout observer owned by SurfaceManager
@@ -99,7 +99,6 @@ public:
     const std::string& getSurfaceId() const;
     int getInstanceId() const { return instanceId_; }
     State getState() const;
-    ComponentRegistry& getComponentRegistry();
 
     /**
      * Return whether components on this surface may play animations.
@@ -147,8 +146,7 @@ public:
      *   3. Recursively collects every descendant id into componentTree_ for removal.
      *   4. Calls destroy() on the root of the removed subtree to release all native
      *      resources (ArkUI nodes, AVPlayer handles, ImageLoader requests, …).
-     *   5. Deletes the C++ object and erases all collected ids from componentTree_
-     *      and registry_.
+     * 5. Deletes the C++ object and erases all collected ids from componentTree_.
      *
      * @param msgs ComponentsRemoveMessage list
      */
@@ -196,10 +194,10 @@ public:
      * Add a component to the surface.
      *
      * Internal flow:
-     * 1. Set surfaceId
-     * 2. Add the component to componentTree
-     * 3. Establish the parent-child relationship
-     * 4. Register the component in the registry
+     * 1. Set surfaceId and instanceId
+     * 2. Inject the render observer
+     * 3. Add the component to componentTree
+     * 4. Establish the parent-child relationship
      */
     void addComponent(const std::string& parentId, A2UIComponent* component);
 
@@ -254,7 +252,7 @@ private:
     std::string surfaceId_;
     int instanceId_ = 0;                                   // Owning SurfaceManager's instance ID
     State state_;
-    ComponentRegistry* registry_;                          // Surface-specific registry
+    ComponentRegistry* registry_;                          // Shared global registry (not owned)
     A2UIComponent* rootComponent_;                         // Root component
     std::map<std::string, A2UIComponent*> componentTree_;  // Component tree (id -> component)
     ArkUI_NodeContentHandle contentHandle_;                // ArkTS container handle for native node mounting

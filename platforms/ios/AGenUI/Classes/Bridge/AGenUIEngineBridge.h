@@ -55,7 +55,7 @@ typedef NSString* _Nullable (^AGenUIFunctionCallCallback)(int instanceId, NSStri
 /// Must be called before the first render; a declaration made later has no effect on
 /// components that have already been parsed.
 ///
-/// @param componentType Component type, i.e. the JSON "component" field (e.g. AmapText)
+/// @param componentType Component type, i.e. the JSON "component" field (e.g. MyText)
 /// @param propertyName Property name (e.g. spans)
 /// @return Whether the declaration was recorded
 - (BOOL)registerDeepParsePropertyForComponentType:(NSString *)componentType

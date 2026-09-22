@@ -32,9 +32,7 @@ import java.util.Map;
  *   - color: text color (supports hex color or color token such as "f_c_2")
  *   - font-size: font size (px only)
  *   - font-weight: font weight (bold only)
- *   - font-family: font family (supports system default fonts and custom fonts:
- *     Oswald-Regular, AlibabaSans-HeavyItalic, Eurostile-BoldOblique,
- *     AlibabaSans102-Bold, AlibabaSans102-Regular, AmapNumber-Medium, AmapNumber-Bold)
+ *   - font-family: font family (supports system default fonts and custom fonts)
  *   - text-decoration: text decoration shorthand (e.g. "underline dashed #FF0000")
  *   - text-decoration-line: decoration line type (underline, line-through)
  *   - text-decoration-style: decoration line style (solid, dashed, dotted, double, wavy)

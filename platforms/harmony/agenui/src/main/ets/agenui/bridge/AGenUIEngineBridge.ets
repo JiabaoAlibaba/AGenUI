@@ -47,7 +47,6 @@ import {
   updateHybridView,
   destroyHybridView,
   onInvokeHybridView,
-  HybridViewManager,
 } from '../hybrid/HybridViewManager';
 import { AGenUILogger } from '../logger/AGenUILogger';
 
@@ -110,9 +109,6 @@ export class AGenUIEngineBridge {
     registerEtsFunction('updateHybridView', updateHybridView);
     registerEtsFunction('destroyHybridView', destroyHybridView);
     registerEtsFunction('onInvokeHybridView', onInvokeHybridView);
-    registerEtsFunction('hasCustomComponent', (componentType: string): boolean => {
-      return HybridViewManager.getInstance().hasViewCreator(componentType);
-    });
 
     // Register the URL open callback.
     internal_a2ui.registerOpenUrlCallback((url: string) => {
@@ -215,7 +211,7 @@ export class AGenUIEngineBridge {
     g_imageLoader = loader;
     // 与 Android AGenUI.registerImageLoader 语义对齐（AGenUI.java 内同步调
     // ImageLoaderConfig.getInstance().setLoader）：同时注入 ImageLoaderConfiguration，
-    // 供宿主自定义组件（如 AmapText 的 image span）经 shared().loader 取用；
+    // 供宿主自定义组件（如富文本组件的 image span）经 shared().loader 取用；
     // 只注册给 C++ 桥会导致这类组件读不到 loader、图片恒透明。
     ImageLoaderConfiguration.shared().setLoader(loader);
 

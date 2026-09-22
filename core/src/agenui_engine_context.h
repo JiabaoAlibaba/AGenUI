@@ -33,7 +33,8 @@ public:
      * @brief Whether a property was declared a container of dynamic values
      * @remark Declared by the host via IAGenUIEngine::registerDeepParseProperty.
      *         Tells the parser to walk the property's whole subtree instead of storing
-     *         a nested object or array verbatim.
+     *         a nested object or array verbatim. A declaration registered under the
+     *         "*" wildcard component type matches every component type.
      */
     virtual bool isDeepParseProperty(const std::string& componentType,
                                      const std::string& propertyName) = 0;

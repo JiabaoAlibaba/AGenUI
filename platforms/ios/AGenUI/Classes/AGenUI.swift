@@ -203,8 +203,8 @@ import Foundation
     /// bindings inside a function call's arguments, and relative paths inside a List
     /// item template.
     ///
-    /// Example — AmapText carries its rich-text runs in a `spans` array:
-    /// `AGenUI.registerDeepParseProperty("AmapText", propertyName: "spans")`
+    /// Example — MyText carries its rich-text runs in a `spans` array:
+    /// `AGenUI.registerDeepParseProperty("MyText", propertyName: "spans")`
     ///
     /// Must be called before the first render; a declaration made later has no effect on
     /// components that have already been parsed.

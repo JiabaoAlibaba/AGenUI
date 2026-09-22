@@ -22,18 +22,17 @@ English | [中文](README.zh-CN.md)
 
 ---
 
-## What's New in v1.5.0
+## What's New in v1.6.0
 
-> Released on 2026-09-04
+> Released on 2026-09-21
 
-- **(iOS) Runtime Configuration API**: Added `AGenUI.setRuntimeConfig(_:)`, which accepts a JSON string of runtime switches from the host so behavior can be toggled remotely. Call it once during SDK initialization, before any surface renders.
-- **(iOS) Physical Pixel Alignment**: Hairline borders are promoted to an integer physical pixel width so all four sides render with identical weight on every screen scale, and component frames are snapped to the physical pixel grid so adjacent siblings stay gap-free. Governed by the `borderPixelAlignment` switch (default on).
-- **(HarmonyOS) `line-height` Measurement Rework**: Text measurement now carries the resolved absolute line-box height, matching the render side exactly. An explicit `line-height` defines the line box even when smaller than the font's natural metrics, and `white-space` no longer affects line-height resolution.
-- **`font-weight` Catalog Coverage**: All three platforms now accept the `normal` / `medium` / `bold` keywords and numeric 100–900 weights, as either a JSON number or an integer string, with platform caveats documented in the catalog.
-- **(iOS) Blank-Check Component Count**: `onBlankCheckResult` now reports the component-tree size at detection time. **Breaking change**: the signature becomes `onBlankCheckResult(_ surface:isBlank:componentCount:)`.
-- (Android) Fixed text disappearing for unbreakable digit and CJK strings at specific screen densities, by aligning measurement metrics with the rendering path.
-- (iOS) Fixed properties applied during component initialization — most visibly a constant `trackInfo` — never reaching listeners.
-- (HarmonyOS) Fixed DateTimeInput measurement carrying a stale line-height override.
+- **Wildcard Deep-Parse Registration**: `registerDeepParseProperty` now accepts `"*"` as the component type, enabling nested dynamic-value parsing for a named property across all component types with one registration.
+- **Data Binding Status Propagation**: Component snapshots now include `dataBindingStatus` metadata, distinguishing no dependency, not ready, partially ready, and fully ready.
+- **(HarmonyOS) Unified Component Registration**: Component creation and built-in measurement registration now share a component descriptor table, with one global component registry serving all surfaces. ArkTS custom-view registration and unregistration are synchronized with the native layer.
+- **(iOS) Property Update Callback Semantics**: `onPropertiesUpdate` now returns the complete post-update property snapshot, aligning with the full-properties callback semantics on Android and HarmonyOS.
+- (Android) Fixed images using `fit: cover` drawing outside their own bounds and overlapping adjacent components.
+- (Core) Fixed recursive parsing altering nested `action` payloads, restoring correct rich-text span click handling.
+- (HarmonyOS) Added null-node guards to native calls during layout updates and background-image cleanup, avoiding ArkUI calls with a null component node handle.
 
 ---
 

@@ -24,7 +24,7 @@ class A2UISurface;
  *
  * Responsibilities:
  * 1. Manage the lifecycle of all surfaces (create, get, destroy)
- * 2. Create an independent ComponentRegistry for each surface by copying factories from the global registry
+ * 2. Pass the shared global ComponentRegistry to each created surface
  * 3. Manage the ISurfaceListener list and dispatch surface/component lifecycle events
  * 4. Forward Harmony-internal observable events (from C++ render-layer components such as
  *    Tabs/Video/Image) to the cross-platform agenui::ISurfaceManager via onRenderFinish /
@@ -37,7 +37,7 @@ class A2UISurfaceManager : public agenui::ComponentRenderListener,
 public:
     /**
      * Constructor
-     * @param globalRegistry Global component registry containing all registered factories
+     * @param globalRegistry Shared global component registry (not owned)
      * @param instanceId Owning SurfaceManager's instance ID (used to route actions
      *        when multiple SurfaceManagers share the same surfaceId)
      */
@@ -54,9 +54,8 @@ public:
      * Matches the cross-platform SurfaceManager.createSurfaceWithoutContainer()
      *
      * Internal flow:
-     * 1. Create an independent ComponentRegistry by copying factory mappings from the global registry
-     * 2. Create A2UISurface (state = CREATED)
-     * 3. Notify ISurfaceListener.onSurfaceCreated
+     * 1. Create A2UISurface (state = CREATED) wired to the shared global registry
+     * 2. Notify ISurfaceListener.onSurfaceCreated
      *
      * @param surfaceId Surface ID
      * @param animated Whether components on this surface may play animations (from CreateSurfaceMessage)
@@ -77,7 +76,7 @@ public:
      * Internal flow:
      * 1. Surface.destroy(): recursively destroy the component tree
      * 2. Remove it from the surfaces map
-     * 3. Delete the surface and its independent registry
+     * 3. Delete the surface
      * 4. Notify ISurfaceListener.onSurfaceDestroyed
      */
     void destroySurface(const std::string& surfaceId);
@@ -133,7 +132,6 @@ private:
     ComponentRegistry* globalRegistry_;                    // Global registry (non-owning)
     int instanceId_ = 0;                                    // Owning SurfaceManager's instance ID
     std::map<std::string, A2UISurface*> surfaces_;                 // surfaceId -> Surface
-    std::map<std::string, ComponentRegistry*> registries_; // surfaceId -> independent registry (owning)
     std::map<std::string, ArkUI_NodeContentHandle> surfaceContentHandles_; // surfaceId -> contentHandle
 
     agenui::A2UIComponentRenderObservable componentRenderObservable_;  // Component render completion observer (instance)

@@ -151,7 +151,9 @@ export function isDebug(): boolean {
   return false;
 }
 
-export function registerComponent(type: string, creator: Function): void {}
+export function registerComponent(type: string): void {}
+
+export function unregisterComponent(type: string): void {}
 
 export function getVersion(): string {
   return '0.0.0-mock';
@@ -319,6 +321,7 @@ const NativeMock: Record<string, Object> = {
   'setDebug': setDebug as Object,
   'isDebug': isDebug as Object,
   'registerComponent': registerComponent as Object,
+  'unregisterComponent': unregisterComponent as Object,
   'getVersion': getVersion as Object,
   'createSurfaceManager': createSurfaceManager as Object,
   'destroySurfaceManager': destroySurfaceManager as Object,

@@ -212,7 +212,13 @@ bool AGenUIEngine::isDeepParseProperty(const std::string& componentType,
     std::lock_guard<std::mutex> lock(_deepParsePropertiesMutex);
 
     auto it = _deepParseProperties.find(componentType);
-    return it != _deepParseProperties.end() && it->second.count(propertyName) > 0;
+    if (it != _deepParseProperties.end() && it->second.count(propertyName) > 0) {
+        return true;
+    }
+    // "*" is the wildcard component type: a declaration registered under it
+    // matches every component type.
+    auto wildcardIt = _deepParseProperties.find("*");
+    return wildcardIt != _deepParseProperties.end() && wildcardIt->second.count(propertyName) > 0;
 }
 
 bool AGenUIEngine::loadThemeConfig(const std::string &themeConfig, std::string &result) {

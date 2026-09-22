@@ -1,133 +1,121 @@
 #include "a2ui_component_registry.h"
+
+#include <memory>
+
 #include "../a2ui_component.h"
-#include "a2ui_component_factory.h"
-#include "a2ui_component_creator.h"
+#include "../a2ui_component_state.h"
 #include "../hybrid/a2ui_hybrid_factory.h"
+#include "../hybrid/a2ui_hybrid_view.h"
 #include "log/a2ui_capi_log.h"
 
 namespace a2ui {
 
-ComponentRegistry::ComponentRegistry() {
-}
+namespace {
 
-ComponentRegistry::~ComponentRegistry() {
-    if (ownsFactories_) {
-        for (auto& [type, factory] : factories_) {
-            delete factory;
-        }
+/**
+ * Create a hybrid component through the ArkTS channel.
+ *
+ * Use unique_ptr so that state is automatically deleted if createHybridView
+ * returns nullptr (e.g. ArkTS function not registered, or no node handle).
+ * Ownership is released to the hybrid view on the success path.
+ */
+A2UIComponent* createHybridComponent(const std::string& surfaceId,
+                                     const std::string& type,
+                                     const std::string& id,
+                                     const nlohmann::json& properties) {
+    std::unique_ptr<ComponentState> state(new ComponentState(id, type, properties));
+    state->setSurfaceId(surfaceId);
+    state->markDirty();
+    auto* component = static_cast<A2UIComponent*>(A2UIHybridFactory::createHybridView(state.get()));
+    if (component) {
+        // The hybrid view now owns state via m_state; relinquish unique_ptr.
+        state.release();
+        return component;
     }
+    // state is deleted here by unique_ptr – no leak on failure path.
+    return new A2UIComponent(id, type);
 }
 
-// ---- Factory Management ----
+} // namespace
 
-void ComponentRegistry::registerFactory(const std::string& type, ComponentFactory* factory) {
-    if (!factory) {
-        HM_LOGE("factory is null for type: %s", type.c_str());
+ComponentRegistry& ComponentRegistry::global() {
+    static ComponentRegistry* instance = [] {
+        auto* r = new ComponentRegistry();
+        r->registerBuiltInComponents();
+        return r;
+    }();
+    return *instance;
+}
+
+void ComponentRegistry::registerBuiltInComponents() {
+    for (const auto& descriptor : getComponentDescriptors()) {
+        components_[descriptor.type] = descriptor;
+    }
+    HM_LOGI("Built-in components registered: %zu", components_.size());
+}
+
+void ComponentRegistry::registerComponent(const std::string& type, const ComponentDescriptor& descriptor) {
+    if (type.empty()) {
+        HM_LOGE("registerComponent: empty type");
         return;
     }
-    factories_[type] = factory;
-    HM_LOGI("Registered factory for type: %s", type.c_str());
+    std::lock_guard<std::mutex> lock(mutex_);
+    components_[type] = descriptor;
+    HM_LOGI("Registered component: %s (hybrid=%d)", type.c_str(), descriptor.isHybrid ? 1 : 0);
 }
 
-ComponentFactory* ComponentRegistry::getFactory(const std::string& type) const {
-    auto it = factories_.find(type);
-    if (it != factories_.end()) {
-        return it->second;
+void ComponentRegistry::unregisterComponent(const std::string& type) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = components_.find(type);
+    if (it == components_.end()) {
+        HM_LOGW("unregisterComponent: type not registered: %s", type.c_str());
+        return;
     }
-    return nullptr;
-}
-
-bool ComponentRegistry::hasFactory(const std::string& type) const {
-    return factories_.find(type) != factories_.end();
+    components_.erase(it);
+    HM_LOGI("Unregistered component: %s", type.c_str());
 }
 
 A2UIComponent* ComponentRegistry::createComponent(const std::string& surfaceId,
-                                                    const std::string& type,
-                                                    const std::string& id,
-                                                    const nlohmann::json& properties) {
-    ComponentFactory* factory = getFactory(type);
-    if (!factory) {
-        if (A2UIHybridFactory::hasCustomComponent(type)) {
-            HM_LOGI("ComponentRegistry::createComponent - Use dynamic custom component creator for type: %s (id: %s, surfaceId: %s)",
-                type.c_str(), id.c_str(), surfaceId.c_str());
-            A2UIComponentCreator dynamicCreator;
-            dynamicCreator.setType(type);
-            return dynamicCreator.createComponent(surfaceId, id, properties);
+                                                  const std::string& type,
+                                                  const std::string& id,
+                                                  const nlohmann::json& properties) {
+    ComponentDescriptor descriptor;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto it = components_.find(type);
+        if (it == components_.end()) {
+            HM_LOGW("No component registered for type: %s (id: %s, surfaceId: %s)",
+                    type.c_str(), id.c_str(), surfaceId.c_str());
+            return nullptr;
         }
-        HM_LOGW("No factory registered for type: %s (id: %s, surfaceId: %s)", type.c_str(), id.c_str(), surfaceId.c_str());
+        descriptor = it->second;
+    }
+
+    if (descriptor.isHybrid) {
+        HM_LOGI("Creating hybrid component: type=%s, id=%s, surfaceId=%s",
+                type.c_str(), id.c_str(), surfaceId.c_str());
+        return createHybridComponent(surfaceId, type, id, properties);
+    }
+
+    if (!descriptor.create) {
+        HM_LOGE("Component entry has no native creator: type=%s, id=%s, surfaceId=%s",
+                type.c_str(), id.c_str(), surfaceId.c_str());
         return nullptr;
     }
 
-    // Create the component through the factory and forward surfaceId.
-    A2UIComponent* component = factory->createComponent(surfaceId, id, properties);
+    A2UIComponent* component = descriptor.create(id, properties);
     if (component) {
-        HM_LOGI("Created component: surfaceId=%s, type=%s, id=%s", surfaceId.c_str(), type.c_str(), id.c_str());
+        HM_LOGI("Created component: surfaceId=%s, type=%s, id=%s",
+                surfaceId.c_str(), type.c_str(), id.c_str());
     } else {
-        HM_LOGE("Factory returned null for: surfaceId=%s, type=%s, id=%s", surfaceId.c_str(), type.c_str(), id.c_str());
+        HM_LOGE("Creator returned null: surfaceId=%s, type=%s, id=%s",
+                surfaceId.c_str(), type.c_str(), id.c_str());
     }
     return component;
 }
 
-// ---- Component Instance Management ----
-
-void ComponentRegistry::registerComponent(const std::string& id, A2UIComponent* component) {
-    if (!component) {
-        HM_LOGE("component is null for id: %s", id.c_str());
-        return;
-    }
-    components_[id] = component;
-}
-
-A2UIComponent* ComponentRegistry::getComponent(const std::string& id) const {
-    auto it = components_.find(id);
-    if (it != components_.end()) {
-        return it->second;
-    }
-    return nullptr;
-}
-
-void ComponentRegistry::unregisterComponent(const std::string& id) {
-    components_.erase(id);
-}
-
-bool ComponentRegistry::hasComponent(const std::string& id) const {
-    return components_.find(id) != components_.end();
-}
-
-void ComponentRegistry::clearAllComponents() {
-    HM_LOGI("Clearing %zu component instances", components_.size());
-    components_.clear();
-    parentMap_.clear();
-}
-
-// ---- parentMap Management ----
-
-void ComponentRegistry::setParentId(const std::string& childId, const std::string& parentId) {
-    parentMap_[childId] = parentId;
-}
-
-std::string ComponentRegistry::getParentId(const std::string& childId) const {
-    auto it = parentMap_.find(childId);
-    if (it != parentMap_.end()) {
-        return it->second;
-    }
-    return "";
-}
-
-// ---- Factory Map Copy ----
-
-void ComponentRegistry::copyFactoriesFrom(const ComponentRegistry& source) {
-    factories_ = source.factories_;
-    HM_LOGI("Copied %zu factories", factories_.size());
-}
-
-// ---- Statistics ----
-
-int ComponentRegistry::getRegisteredFactoryCount() const {
-    return static_cast<int>(factories_.size());
-}
-
 int ComponentRegistry::getRegisteredComponentCount() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     return static_cast<int>(components_.size());
 }
 

@@ -45,13 +45,6 @@ public:
     static void onInvokeHybridView(A2UIHybridView* hybridView, const std::string& key, const nlohmann::json& params);
 
     /**
-     * Return whether the component type has been registered as a custom ArkTS component.
-     * @param componentType Component type
-     * @return True when registered
-     */
-    static bool hasCustomComponent(const std::string& componentType);
-    
-    /**
      * Add an attribute change observer.
      */
     static napi_value addAttributeChangeObserver(napi_env env, napi_callback_info info);

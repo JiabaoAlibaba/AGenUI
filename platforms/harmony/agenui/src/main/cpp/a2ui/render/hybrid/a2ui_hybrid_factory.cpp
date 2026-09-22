@@ -146,25 +146,6 @@ void A2UIHybridFactory::onInvokeHybridView(A2UIHybridView* hybridView, const std
     HMHelper::callArkTSFunction(tsObject, state->getId(), key, params);
 }
 
-bool A2UIHybridFactory::hasCustomComponent(const std::string& componentType) {
-    ArkTSObject tsObject = HMHelper::ref("hasCustomComponent");
-    if (tsObject.ref == nullptr) {
-        return false;
-    }
-
-    napi_value result = HMHelper::callArkTSFunction(tsObject, componentType);
-    if (result == nullptr) {
-        return false;
-    }
-
-    bool hasComponent = false;
-    napi_status status = napi_get_value_bool(tsObject.env, result, &hasComponent);
-    if (status != napi_ok) {
-        return false;
-    }
-    return hasComponent;
-}
-
 napi_value A2UIHybridFactory::addAttributeChangeObserver(napi_env env, napi_callback_info info) {
     // Read (key, callback).
     size_t argc = 2;

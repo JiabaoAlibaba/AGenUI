@@ -34,6 +34,12 @@ std::string ComponentSnapshot::stringify() const {
     
     dataImpl->set("id", id);
     dataImpl->set("component", component);
+    // Protocol meta field: binding readiness as the numeric DataBindingStatus
+    // enum (declaration order is the wire contract:
+    // 0=notDependent, 1=notReady, 2=partiallyReady, 3=fullyReady). Platform
+    // layers read it for binding readiness and strip it before applying
+    // properties; it is never a component property.
+    dataImpl->set("dataBindingStatus", static_cast<int>(dataBindingStatus));
     
     if (!styles.empty() || layout.isValid()) {
         auto stylesImpl = SerializableData::Impl::createObject();
